@@ -1,5 +1,8 @@
 import requests
 import uuid
+from camp import Camp
+
+RESOURCECATEGORY_CAMPGROUND = -2147483648  # from LIST_RESOURCETYPES
 
 HEADERS_JSON = {'Content-Type': 'application/json'}
 
@@ -15,32 +18,30 @@ ENDPOINTS = {
 
 
 def main():
-    camps_by_resourcelocationid = {}
-    camps_by_mapid = {}
-    for camp in list_camps():
-        if camp['resourceLocationId'] and -2147483648 in camp[
-            'resourceCategoryIds']:  # -2147483648 = campground (from LIST_RESOURCETYPES)
-            camps_by_resourcelocationid[camp['resourceLocationId']] = camp['resourceLocationLocalizedValues']['en-US']
-            camps_by_mapid[camp['mapId']] = camp['resourceLocationLocalizedValues']['en-US']
+    camps = list_camps(RESOURCECATEGORY_CAMPGROUND)
+    for i, camp in enumerate(camps):
+        print(i, camp.name)
+    print("Camp:")
+    camp = camps[int(input())]
+    detail = get_camp_detail(camp.resource_location_id)
+    print(detail['localizedDetails'][0]['description'])
 
-    # details = []
-    # for id, name in camps_by_resourcelocationid.items():
-    #     details.append(get_camp_detail(id))
-    # print(details)
-
-    for camp_id, camp_name in camps_by_mapid.items():
-        print(camp_name)
-        for camp_area_id, camp_area_info in list_camp_areas(camp_id).items():
-            print(camp_area_info)
-            sites = get_site_availability(camp_area_id)
-            for site in sites:
-                site_info = get_site_detail(camp_area_id)
-                print(' SITE:%s'%site_info)
-                print(' AVAIL:%s'%site)
+    for camp_area_id, camp_area_info in list_camp_areas(camp.map_id).items():
+        print(camp_area_info)
+        sites = get_site_availability(camp_area_id)
+        for site in sites:
+            site_info = get_site_detail(camp_area_id)
+            print(' SITE:%s'%site_info)
+            print(' AVAIL:%s'%site)
 
 
-def list_camps():
-    return requests.get(ENDPOINTS['LIST_CAMPGROUNDS']).json()
+def list_camps(resource_category_id):
+    camps = []
+    for camp in requests.get(ENDPOINTS['LIST_CAMPGROUNDS']).json():
+        if camp['resourceLocationId'] and resource_category_id in camp['resourceCategoryIds']:
+            camp = Camp(camp['resourceLocationLocalizedValues']['en-US'], camp['mapId'], camp['resourceLocationId'])
+            camps.append(camp)
+    return camps
 
 
 def get_camp_detail(resourcelocationid):
@@ -101,4 +102,5 @@ def list_camp_areas(mapid):
     return camp_areas_by_id
 
 
-main()
+if __name__ == "__main__":
+    main()
