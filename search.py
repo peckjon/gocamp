@@ -1,8 +1,8 @@
 import requests
 import uuid
-from camp import Camp
-
-RESOURCECATEGORY_CAMPGROUND = -2147483648  # from LIST_RESOURCETYPES
+import datetime
+from dateutil import parser
+from datatypes import Camp, CampArea, Site, SiteAvailability
 
 HEADERS_JSON = {'Content-Type': 'application/json'}
 
@@ -18,21 +18,41 @@ ENDPOINTS = {
 
 
 def main():
-    camps = list_camps(RESOURCECATEGORY_CAMPGROUND)
+
+    # TBD: allow user to select resource type and equipment type using ENDPOINTS['LIST_RESOURCETYPES']
+    equipment_category_tent = -32767
+    equipment_id_tent = 32768
+    resource_category_campground = -2147483648
+
+    # pick a camp
+    camps = list_camps(resource_category_campground)
     for i, camp in enumerate(camps):
-        print(i, camp.name)
-    print("Camp:")
+        print(i, camp)
+    print('SELECT A CAMP:')
     camp = camps[int(input())]
     detail = get_camp_detail(camp.resource_location_id)
     print(detail['localizedDetails'][0]['description'])
 
-    for camp_area_id, camp_area_info in list_camp_areas(camp.map_id).items():
-        print(camp_area_info)
-        sites = get_site_availability(camp_area_id)
-        for site in sites:
-            site_info = get_site_detail(camp_area_id)
-            print(' SITE:%s'%site_info)
-            print(' AVAIL:%s'%site)
+    # TBD: collect dates from user
+    start_date_raw = '2019-07-01T07:00:00.000Z'
+    end_date_raw = '2019-7-02T06:59:59.999Z'
+    start_date = parser.parse(start_date_raw)
+    end_date = parser.parse(end_date_raw)
+    dates = [(start_date + datetime.timedelta(days=x)).strftime('%y-%b-%d') for x in range(0, (end_date+datetime.timedelta(days=2)-start_date).days)]
+
+    # TBD: OOP and I/O
+    camp_areas = list_camp_areas(camp.map_id, start_date_raw, end_date_raw, equipment_category_tent)
+    for i, camp_area in enumerate(camp_areas):
+        print(i, camp_area)
+    print('SELECT A CAMP AREA:')
+    camp_area = camp_areas[int(input())]
+    print(camp_area)
+    # TBD: not really sure what availabilityType and reservabilityStatus indicate/values
+    for site in list_sites(camp_area.map_id, start_date_raw, end_date_raw, equipment_category_tent):
+        print('  ',site) # get_site_detail(resourceId)
+        site_availabilitys = get_site_availability(site, start_date_raw, end_date_raw, equipment_id_tent)
+        for i, site_availability in enumerate(site_availabilitys):
+            print('    %s %s'%(dates[i],site_availability))
 
 
 def list_camps(resource_category_id):
@@ -52,55 +72,59 @@ def get_site_detail(resourceId):
     return requests.get(ENDPOINTS['SITE_DETAILS'],params={'resourceId':resourceId}).json()
 
 
-def get_site_availability(resourceId):
+def get_site_availability(site, start_date, end_date, equipment_id):
     params = {
-        'resourceId': resourceId,
+        'resourceId': site.resource_id,
         'cartUid':uuid.uuid4(),
-        'startDate':'2019-07-01T07:00:00.000Z',
-        'endDate':'2020-10-01T06:59:59.999Z',
-        'equipmentId':'32768'
+        'startDate':start_date,
+        'endDate': end_date,
+        'equipmentId':equipment_id
 
     }
-    return requests.get(ENDPOINTS['DAILY_AVAILABILITY'],params=params).json()
+    return [SiteAvailability(site, e['availabilityType'], e['reservabilityStatus']) for e in requests.get(ENDPOINTS['DAILY_AVAILABILITY'],params=params).json()]
 
 
-def list_camp_areas(mapid):
+def list_camp_areas(mapid, start_date, end_date, equipment_type):
     data = {
        'mapId':mapid,
-       'bookingVersion':{
-          'bookingCapacityCategoryCounts':[
-             {
-                'capacityCategoryId':-32767,
-                'subCapacityCategoryId':None,
-                'count':1
-             }
-          ],
-          'rateCategoryId':-32768,
-          'startDate':'2019-06-01T14:00:00.000Z',
-          'endDate':'2019-06-02T14:00:00.000Z',
-          'releasePersonalInformation':False,
-          'equipmentCategoryId':-32768,
-          'subEquipmentCategoryId':-32768,
-          'requiresCheckout':False,
-          'bookingStatus':0,
-          'completedDate':'2019-06-01T12:38:32.676Z'
-       },
        'bookingCategoryId':0,
-       'startDate':'2019-06-01T07:00:00.000Z',
-       'endDate':'2019-06-02T07:00:00.000Z',
-       'isReserving':False,
+       'startDate':start_date,
+       'endDate':end_date,
+       'isReserving':True,
        'getDailyAvailability':True,
        'partySize':1,
-       'equipmentId':-32768,
-       'subEquipmentId':-32768,
-       'generateBreadcrumbs':False
+       'equipmentId':equipment_type,
+       'subEquipmentId':equipment_type,
+       'generateBreadcrumbs':False,
     }
     results = requests.post(ENDPOINTS['MAPDATA'], headers=HEADERS_JSON, json=data).json()
-    camp_areas_by_id = {}
-    for id, info in results['mapLinkLocalizedValues'].items():
-        camp_areas_by_id[id] = [(entry['title'],entry['description']) for entry in info]
-    return camp_areas_by_id
+    camp_areas = []
+    for map_id, info in results['mapLinkLocalizedValues'].items():
+        for entry in info:
+            camp_areas.append(CampArea(map_id, entry['title'],entry['description']))
+    return camp_areas
 
 
-if __name__ == "__main__":
+def list_sites(map_id, start_date, end_date, equipment_type):
+    data = {
+       'mapId':map_id,
+       'bookingCategoryId':0,
+       'startDate':start_date,
+       'endDate':end_date,
+       'isReserving':True,
+       'getDailyAvailability':True,
+       'partySize':1,
+       'equipmentId':equipment_type,
+       'subEquipmentId':equipment_type,
+       'generateBreadcrumbs':False,
+    }
+    results = requests.post(ENDPOINTS['MAPDATA'], headers=HEADERS_JSON, json=data).json()
+    sites = []
+    for entry in results['resourcesOnMap']:
+        sites.append(Site(entry['resourceId'], entry['localizedValues'][0]['name'],entry['localizedValues'][0]['description']))
+    sites.sort(key=lambda site: site.name.zfill(3))
+    return sites
+
+
+if __name__ == '__main__':
     main()
