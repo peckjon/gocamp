@@ -1,8 +1,9 @@
-import requests
-import uuid
+from collections import OrderedDict
 import datetime
 from dateutil import parser
 from datatypes import Camp, CampArea, Site, SiteAvailability
+import requests
+import uuid
 
 HEADERS_JSON = {'Content-Type': 'application/json'}
 
@@ -21,7 +22,7 @@ def main():
 
     # TBD: allow user to select resource type and equipment type using ENDPOINTS['LIST_RESOURCETYPES']
     equipment_category_tent = -32767
-    equipment_id_tent = 32768
+    equipment_id_tent = -32768
     resource_category_campground = -2147483648
 
     # pick a camp
@@ -48,11 +49,17 @@ def main():
     camp_area = camp_areas[int(input())]
     print(camp_area)
     # TBD: not really sure what availabilityType and reservabilityStatus indicate/values
-    for site in list_sites(camp_area.map_id, start_date_raw, end_date_raw, equipment_category_tent):
+    # for site in list_sites(camp_area.map_id, start_date_raw, end_date_raw, equipment_category_tent):
+    #     print('  ',site) # get_site_detail(resourceId)
+    #     site_availabilitys = get_site_availability(site, start_date_raw, end_date_raw, equipment_id_tent)
+    #     for i, site_availability in enumerate(site_availabilitys):
+    #         print('    %s %s'%(dates[i],site_availability))
+    for site, site_availabilitys in list_site_availability(camp_area.map_id, start_date_raw, end_date_raw, equipment_category_tent).items():
         print('  ',site) # get_site_detail(resourceId)
-        site_availabilitys = get_site_availability(site, start_date_raw, end_date_raw, equipment_id_tent)
         for i, site_availability in enumerate(site_availabilitys):
-            print('    %s %s'%(dates[i],site_availability))
+            print('    %s %s'%(dates[i],site_availability.availability==0))
+
+
 
 
 def list_camps(resource_category_id):
@@ -72,16 +79,16 @@ def get_site_detail(resourceId):
     return requests.get(ENDPOINTS['SITE_DETAILS'],params={'resourceId':resourceId}).json()
 
 
-def get_site_availability(site, start_date, end_date, equipment_id):
-    params = {
-        'resourceId': site.resource_id,
-        'cartUid':uuid.uuid4(),
-        'startDate':start_date,
-        'endDate': end_date,
-        'equipmentId':equipment_id
-
-    }
-    return [SiteAvailability(site, e['availabilityType'], e['reservabilityStatus']) for e in requests.get(ENDPOINTS['DAILY_AVAILABILITY'],params=params).json()]
+# def get_site_availability(site, start_date, end_date, equipment_id):
+#     params = {
+#         'resourceId': site.resource_id,
+#         'cartUid':uuid.uuid4(),
+#         'startDate':start_date,
+#         'endDate': end_date,
+#         'equipmentId':equipment_id
+#     }
+#     # return requests.get(ENDPOINTS['DAILY_AVAILABILITY'],params=params).json()
+#     return [SiteAvailability(site, e['availabilityType'], e['reservabilityStatus']) for e in requests.get(ENDPOINTS['DAILY_AVAILABILITY'],params=params).json()]
 
 
 def list_camp_areas(mapid, start_date, end_date, equipment_type):
@@ -124,6 +131,31 @@ def list_sites(map_id, start_date, end_date, equipment_type):
         sites.append(Site(entry['resourceId'], entry['localizedValues'][0]['name'],entry['localizedValues'][0]['description']))
     sites.sort(key=lambda site: site.name.zfill(3))
     return sites
+
+
+def list_site_availability(map_id, start_date, end_date, equipment_type):
+    data = {
+       'mapId':map_id,
+       'bookingCategoryId':0,
+       'startDate':start_date,
+       'endDate':end_date,
+       'isReserving':True,
+       'getDailyAvailability':True,
+       'partySize':1,
+       'equipmentId':equipment_type,
+       'subEquipmentId':equipment_type,
+       'generateBreadcrumbs':False,
+    }
+    results = requests.post(ENDPOINTS['MAPDATA'], headers=HEADERS_JSON, json=data).json()
+    sites_availability = {}
+    for entry in results['resourcesOnMap']:
+        site = Site(entry['resourceId'], entry['localizedValues'][0]['name'],entry['localizedValues'][0]['description'])
+        availability = [
+            SiteAvailability(site, e['availability'])
+            for e in results['resourceAvailabilityMap'][str(site.resource_id)]
+        ]
+        sites_availability[site] = availability
+    return OrderedDict(sorted(sites_availability.items(), key=lambda sa: sa[0].name.zfill(3)))
 
 
 if __name__ == '__main__':

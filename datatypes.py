@@ -33,10 +33,9 @@ class Site:
 
 class SiteAvailability:
 
-    def __init__(self, site, availability_type, reservability_status):
-        self.sitre = site
-        self.availability_type = availability_type
-        self.reservability_status = reservability_status
+    def __init__(self, site, availability):
+        self.site = site
+        self.availability = availability
 
     def __str__(self):
-        return '%s_%s'%(self.availability_type,self.reservability_status)
+        return '%s: %s'%(self.site.name,self.availability)
