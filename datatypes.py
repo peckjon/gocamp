@@ -1,3 +1,23 @@
+class Equipment:
+
+    def __init__(self, subcategory_id, name):
+        self.subcategory_id = subcategory_id
+        self.name = name
+
+    def __str__(self):
+        return self.name
+
+
+class ResourceCategory:
+
+    def __init__(self, resource_id, name):
+        self.resource_id = resource_id
+        self.name = name
+
+    def __str__(self):
+        return self.name
+
+
 class Camp:
 
     def __init__(self, name, map_id, resource_location_id):

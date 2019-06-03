@@ -1,14 +1,15 @@
 from collections import OrderedDict
 import datetime
 from dateutil import parser
-from datatypes import Camp, CampArea, Site, SiteAvailability
+from datatypes import Camp, CampArea, Equipment, ResourceCategory, Site, SiteAvailability
 import requests
 import uuid
 
 HEADERS_JSON = {'Content-Type': 'application/json'}
 
 ENDPOINTS = {
-    'LIST_RESOURCETYPES': 'https://washington.goingtocamp.com/api/resourcecategory',
+    'LIST_RESOURCECATEGORY': 'https://washington.goingtocamp.com/api/resourcecategory',
+    'LIST_EQUIPMENT': ' https://washington.goingtocamp.com/api/equipment',
     'LIST_RESOURCESTATUS': 'https://washington.goingtocamp.com/api/availability/resourcestatus',
     'MAPDATA': 'https://washington.goingtocamp.com/api/maps/mapdatabyid',
     'LIST_CAMPGROUNDS': 'https://washington.goingtocamp.com/api/resourcelocation/rootmaps',
@@ -20,13 +21,26 @@ ENDPOINTS = {
 
 def main():
 
-    # TBD: allow user to select resource type and equipment type using ENDPOINTS['LIST_RESOURCETYPES']
+    resource_categorys = list_resource_categorys()
+    for i, rc in enumerate(resource_categorys):
+        print(i, rc)
+    print('SELECT A CATEGORY:')
+    resource_category = resource_categorys[int(input())]
+    print(resource_category)
+
+    equipments = list_equipments()
+    for i, e in enumerate(equipments):
+        print(i, e)
+    print('SELECT EQUIPMENT:')
+    equipment = equipments[int(input())]
+    print(equipment)
+
+    # TBD: allow user to select equipment type... where to find?
     equipment_category_tent = -32767
     equipment_id_tent = -32768
-    resource_category_campground = -2147483648
 
     # pick a camp
-    camps = list_camps(resource_category_campground)
+    camps = list_camps(resource_category.resource_id)
     for i, camp in enumerate(camps):
         print(i, camp)
     print('SELECT A CAMP:')
@@ -42,24 +56,32 @@ def main():
     dates = [(start_date + datetime.timedelta(days=x)).strftime('%y-%b-%d') for x in range(0, (end_date+datetime.timedelta(days=2)-start_date).days)]
 
     # TBD: OOP and I/O
-    camp_areas = list_camp_areas(camp.map_id, start_date_raw, end_date_raw, equipment_category_tent)
+    camp_areas = list_camp_areas(camp.map_id, start_date_raw, end_date_raw, equipment.subcategory_id)
     for i, camp_area in enumerate(camp_areas):
         print(i, camp_area)
     print('SELECT A CAMP AREA:')
     camp_area = camp_areas[int(input())]
     print(camp_area)
     # TBD: not really sure what availabilityType and reservabilityStatus indicate/values
-    # for site in list_sites(camp_area.map_id, start_date_raw, end_date_raw, equipment_category_tent):
+    # for site in list_sites(camp_area.map_id, start_date_raw, end_date_raw, equipment.subcategory_id):
     #     print('  ',site) # get_site_detail(resourceId)
-    #     site_availabilitys = get_site_availability(site, start_date_raw, end_date_raw, equipment_id_tent)
+    #     site_availabilitys = get_site_availability(site, start_date_raw, end_date_raw, equipment.subcategory_id)
     #     for i, site_availability in enumerate(site_availabilitys):
     #         print('    %s %s'%(dates[i],site_availability))
-    for site, site_availabilitys in list_site_availability(camp_area.map_id, start_date_raw, end_date_raw, equipment_category_tent).items():
+    for site, site_availabilitys in list_site_availability(camp_area.map_id, start_date_raw, end_date_raw, equipment.subcategory_id).items():
         print('  ',site) # get_site_detail(resourceId)
         for i, site_availability in enumerate(site_availabilitys):
             print('    %s %s'%(dates[i],site_availability.availability==0))
 
 
+def list_resource_categorys():
+    return [ResourceCategory(e['resourceCategoryId'],e['localizedValues'][0]['name']) for e in requests.get(ENDPOINTS['LIST_RESOURCECATEGORY']).json()]
+
+
+def list_equipments():
+    equipment_all = sorted(requests.get(ENDPOINTS['LIST_EQUIPMENT']).json(), key=lambda e: e['order'])
+    equipment = equipment_all[0]['subEquipmentCategories']
+    return [Equipment(e['subEquipmentCategoryId'],e['localizedValues'][0]['name']) for e in equipment]
 
 
 def list_camps(resource_category_id):
