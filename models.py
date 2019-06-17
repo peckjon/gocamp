@@ -5,7 +5,7 @@ class Equipment:
         self.subcategory_id = subcategory_id
         self.name = name
 
-    def __str__(self):
+    def __repr__(self):
         return self.name
 
 
@@ -15,7 +15,7 @@ class ResourceCategory:
         self.resource_id = resource_id
         self.name = name
 
-    def __str__(self):
+    def __repr__(self):
         return self.name
 
 
@@ -26,7 +26,7 @@ class Camp:
         self.map_id = map_id
         self.resource_location_id = resource_location_id
 
-    def __str__(self):
+    def __repr__(self):
         return self.name
 
 
@@ -37,7 +37,7 @@ class CampArea:
         self.name = name
         self.description = description
 
-    def __str__(self):
+    def __repr__(self):
         return '%s: %s ' %(self.name,self.description)
 
 
@@ -48,7 +48,7 @@ class Site:
         self.name = name
         self.description = description
 
-    def __str__(self):
+    def __repr__(self):
         return '%s: %s'%(self.name,self.description)
 
 
@@ -59,5 +59,5 @@ class SiteAvailability:
         self.availability = availability
         self.allowed_equipment = allowed_equipment
 
-    def __str__(self):
+    def __repr__(self):
         return '%s: %s'%(self.site.name,self.availability)
