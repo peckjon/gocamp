@@ -25,17 +25,36 @@ def post_json(endpoint, data=None):
     return requests.post(ENDPOINTS[endpoint], headers={'Content-Type': 'application/json'}, json=data).json()
 
 
-def get_reservation_link(party_size, start_date, end_date, map_id, resource_location_id, equipment_id, sub_equipment_id):
+def get_reservation_link(party_size, start_date, end_date, camp_area, resource_location_id, equipment_id, sub_equipment_id):
+    """
+    Web link at which a reservation could be made for the specified search
+    :param party_size:
+    :param start_date:
+    :param end_date:
+    :param camp_area:
+    :param resource_location_id:
+    :param equipment_id:
+    :param sub_equipment_id:
+    :return:
+    """
     return\
         'https://washington.goingtocamp.com/create-booking/results?mapId=%s&bookingCategoryId=0&startDate=%s&endDate=%s&isReserving=true&equipmentId=%s&subEquipmentId=%s&partySize=%s&resourceLocationId=%s'\
-        %(map_id, start_date.isoformat(), end_date.isoformat(), equipment_id, sub_equipment_id, party_size, resource_location_id)
+        %(camp_area.map_id, start_date.isoformat(), end_date.isoformat(), equipment_id, sub_equipment_id, party_size, resource_location_id)
 
 
 def list_resource_categorys():
+    """
+    Retrieve all known Resource Categories
+    :return:
+    """
     return [ResourceCategory(e['resourceCategoryId'],e['localizedValues'][0]['name']) for e in get_json('LIST_RESOURCECATEGORY')]
 
 
 def list_equipments():
+    """
+    Retrieve all known Equipment
+    :return:
+    """
     equipments = []
     equipment_all = sorted(get_json('LIST_EQUIPMENT'), key=lambda e: e['order'])
     for category in equipment_all:
@@ -45,25 +64,45 @@ def list_equipments():
 
 
 def list_camps(resource_category_id):
+    """
+    Retrieve Camps which can host the selected Resource Category
+    :param resource_category_id:
+    :return:
+    """
     camps = []
     for camp in get_json('LIST_CAMPGROUNDS'):
         if camp['resourceLocationId'] and resource_category_id in camp['resourceCategoryIds']:
-            camp = Camp(camp['resourceLocationLocalizedValues']['en-US'], camp['mapId'], camp['resourceLocationId'])
-            camps.append(camp)
+            camps.append(Camp(camp['mapId'], camp['resourceLocationId'],camp['resourceLocationLocalizedValues']['en-US']))
     return camps
 
 
-def get_camp_detail(resourcelocationid):
-    return get_json('CAMP_DETAILS', {'resourceLocationId':resourcelocationid})
+def get_camp_description(resource_location_id):
+    """
+    Get longform description of this Camp
+    :param resource_location_id:
+    :return:
+    """
+    return get_json('CAMP_DETAILS', {'resourceLocationId':resource_location_id})['localizedDetails'][0]['description']
 
 
-def get_site_detail(resourceId):
-    return get_json('SITE_DETAILS', {'resourceId':resourceId})
+def get_site_description(site):
+    """
+    Get longform description of this Site
+    """
+    return get_json('SITE_DETAILS', {'resourceId':site.resource_id})['localizedValues'][0]['description']
 
 
-def list_camp_areas(mapid, start_date, end_date, equipment_type):
+def list_camp_areas(camp, start_date, end_date, equipment_type):
+    """
+    Retrieve Areas within a Camp which can host the selected Equipment within a date range
+    :param camp:
+    :param start_date:
+    :param end_date:
+    :param equipment_type:
+    :return:
+    """
     data = {
-       'mapId':mapid,
+       'mapId':camp.map_id,
        'bookingCategoryId':0,
        'startDate':start_date.isoformat(),
        'endDate':end_date.isoformat(),
@@ -82,9 +121,17 @@ def list_camp_areas(mapid, start_date, end_date, equipment_type):
     return camp_areas
 
 
-def list_sites(map_id, start_date, end_date, equipment_type):
+def list_sites(camp_area, start_date, end_date, equipment_type):
+    """
+    Retrieve Sites within a Camp Area which can host the selected Equipment within a date range
+    :param camp_area:
+    :param start_date:
+    :param end_date:
+    :param equipment_type:
+    :return:
+    """
     data = {
-       'mapId':map_id,
+       'mapId':camp_area.map_id,
        'bookingCategoryId':0,
        'startDate':start_date.isoformat(),
        'endDate':end_date.isoformat(),
@@ -103,9 +150,17 @@ def list_sites(map_id, start_date, end_date, equipment_type):
     return sites
 
 
-def list_site_availability(map_id, start_date, end_date, equipment_type):
+def list_site_availability(camp_area, start_date, end_date, equipment_type):
+    """
+    Retrieve the Availability for all Sites in a Camp Area which can host the selected Equipment within a date range
+    :param camp_area:
+    :param start_date:
+    :param end_date:
+    :param equipment_type:
+    :return:
+    """
     data = {
-       'mapId':map_id,
+       'mapId':camp_area.map_id,
        'bookingCategoryId':0,
        'startDate':start_date.isoformat(),
        'endDate':end_date.isoformat(),

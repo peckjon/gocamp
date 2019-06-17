@@ -28,7 +28,7 @@ def prompt_collection(prompt, collection, default=None, print_selection=False):
 
 
 def print_site_availabilitys(site, dates, site_availabilitys):
-    print(site)  # get_site_detail(resourceId)?
+    print(site)
     for i, date in enumerate(dates):
         site_availability_text = 'not available'
         if site_availabilitys[i].availability == 0:
@@ -65,16 +65,15 @@ if __name__ == '__main__':
 
     # pick a camp
     camp = prompt_collection('SELECT A CAMP', list_camps(resource_category.resource_id))
-    detail = get_camp_detail(camp.resource_location_id)
-    print(detail['localizedDetails'][0]['description'])
+    print(get_camp_description(camp.resource_location_id))
 
     # pick section of the camp
-    camp_area = prompt_collection('SELECT A CAMP AREA', list_camp_areas(camp.map_id, start_date, end_date, equipment.subcategory_id), None, True)
+    camp_area = prompt_collection('SELECT A CAMP AREA', list_camp_areas(camp, start_date, end_date, equipment.subcategory_id), None, True)
 
     # list availability
     equipment_id_subid = (equipment.category_id, equipment.subcategory_id)
-    for site, site_availabilitys in list_site_availability(camp_area.map_id, start_date, end_date, equipment.subcategory_id).items():
+    for site, site_availabilitys in list_site_availability(camp_area, start_date, end_date, equipment.subcategory_id).items():
         print_site_availabilitys(site, dates, site_availabilitys)
 
     # web link to make reservation
-    print(get_reservation_link(party_size, start_date, end_date, camp_area.map_id, camp.resource_location_id, equipment.category_id, equipment.subcategory_id))
+    print(get_reservation_link(party_size, start_date, end_date, camp_area, camp.resource_location_id, equipment.category_id, equipment.subcategory_id))
