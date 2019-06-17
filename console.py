@@ -1,7 +1,5 @@
 import datetime
 
-from dateutil import parser
-
 from app import *
 
 
@@ -31,11 +29,11 @@ def prompt_collection(prompt, collection, default=None, print_selection=False):
 
 def print_site_availabilitys(site, dates, site_availabilitys):
     print(site)  # get_site_detail(resourceId)?
-    for i, site_availability in enumerate(site_availabilitys):
+    for i, date in enumerate(dates):
         site_availability_text = 'not available'
-        if site_availability.availability == 0:
+        if site_availabilitys[i].availability == 0:
             site_allowed_equipment_text = [(e.category_id, e.subcategory_id) for e in
-                                           site_availability.allowed_equipment]
+                                           site_availabilitys[i].allowed_equipment]
             site_availability_text = 'AVAILABLE' if equipment_id_subid in site_allowed_equipment_text else 'equipment not allowed'
         print('  %s %s' % (dates[i], site_availability_text))
 
@@ -50,17 +48,20 @@ if __name__ == '__main__':
     year = prompt_int('Year', now.year)
     start_month = prompt_int('Start Month', now.month)
     start_day = prompt_int('Start Day', now.day)
-    end_month = prompt_int('End Month', now.month)
-    end_day = prompt_int('End Day', now.day)
+    end_month = prompt_int('End Month', start_month)
+    end_day = prompt_int('End Day', start_day+1)
     start_date = datetime.datetime(year, start_month, start_day, 7, tzinfo=datetime.timezone.utc)
     end_date = datetime.datetime(year, end_month, end_day, 7, tzinfo=datetime.timezone.utc)
-    dates = [(start_date + datetime.timedelta(days=x)).strftime('%y-%b-%d') for x in range(0, (end_date+datetime.timedelta(days=2)-start_date).days)]
+    dates = [(start_date + datetime.timedelta(days=x)).strftime('%y-%b-%d') for x in range(0, (end_date-start_date).days)]
+    if len(dates) == 0:
+        raise Exception("must stay at least 1 night")
+
 
     # campsite, cabin, etc... TBD: does this work for non-campsites?
-    resource_category = prompt_collection('SELECT A CATEGORY', list_resource_categorys(), None, True)
+    resource_category = prompt_collection('SELECT A CATEGORY', list_resource_categorys(), 0, True)
 
     # pick tent, RV, etc
-    equipment = prompt_collection('SELECT EQUIPMENT', list_equipments(), None, True)
+    equipment = prompt_collection('SELECT EQUIPMENT', list_equipments(), 0, True)
 
     # pick a camp
     camp = prompt_collection('SELECT A CAMP', list_camps(resource_category.resource_id))

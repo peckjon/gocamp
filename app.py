@@ -1,7 +1,9 @@
 from collections import OrderedDict
+from datetime import timedelta
+import requests
 
 from models import Camp, CampArea, Equipment, ResourceCategory, Site, SiteAvailability
-import requests
+
 
 ENDPOINTS = {
     'LIST_RESOURCECATEGORY': 'https://washington.goingtocamp.com/api/resourcecategory',
@@ -84,8 +86,8 @@ def list_sites(map_id, start_date, end_date, equipment_type):
     data = {
        'mapId':map_id,
        'bookingCategoryId':0,
-       'startDate':start_date,
-       'endDate':end_date,
+       'startDate':start_date.isoformat(),
+       'endDate':end_date.isoformat(),
        'isReserving':True,
        'getDailyAvailability':True,
        'partySize':1,
