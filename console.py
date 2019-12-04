@@ -56,7 +56,6 @@ if __name__ == '__main__':
     if len(dates) == 0:
         raise Exception("must stay at least 1 night")
 
-
     # campsite, cabin, etc... TBD: does this work for non-campsites?
     resource_category = prompt_collection('SELECT A CATEGORY', list_resource_categorys(), 0, True)
 
