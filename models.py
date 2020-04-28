@@ -64,7 +64,10 @@ class Site:
         self.description = description
 
     def __repr__(self):
-        return '%s: %s'%(self.name,self.description)
+        if self.description:
+            return '%s (%s)'%(self.name,self.description)
+        else:
+            return self.name
 
 
 class SiteAvailability:

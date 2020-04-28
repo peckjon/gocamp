@@ -12,9 +12,12 @@ ENDPOINTS = {
     'MAPDATA': 'https://washington.goingtocamp.com/api/maps/mapdatabyid',
     'LIST_CAMPGROUNDS': 'https://washington.goingtocamp.com/api/resourcelocation/rootmaps',
     'SITE_DETAILS': 'https://washington.goingtocamp.com/api/resource/details',
-    'CAMP_DETAILS': 'https://washington.goingtocamp.com/api/resourcelocation/locationdetails',
+    # 'CAMP_DETAILS_SINGLE': 'https://washington.goingtocamp.com/api/resourcelocation/locationdetails',
+    'CAMP_DETAILS_ALL': 'https://washington.goingtocamp.com/api/resourcelocation',
     'DAILY_AVAILABILITY': 'https://washington.goingtocamp.com/api/availability/resourcedailyavailability',
 }
+
+CAMP_DETAILS_BY_LOCATIONID = {}
 
 
 def get_json(endpoint, params=None):
@@ -75,6 +78,11 @@ def list_camps(resource_category_id):
             camps.append(Camp(camp['mapId'], camp['resourceLocationId'],camp['resourceLocationLocalizedValues']['en-US']))
     return camps
 
+def init_camp_details():
+    if(len(CAMP_DETAILS_BY_LOCATIONID) is 0):
+        all_camp_details = get_json('CAMP_DETAILS_ALL')
+        for camp_details in all_camp_details:
+            CAMP_DETAILS_BY_LOCATIONID[camp_details['resourceLocationId']] = camp_details['localizedValues']
 
 def get_camp_description(resource_location_id):
     """
@@ -82,14 +90,17 @@ def get_camp_description(resource_location_id):
     :param resource_location_id:
     :return:
     """
-    return get_json('CAMP_DETAILS', {'resourceLocationId':resource_location_id})['localizedDetails'][0]['description']
+    init_camp_details()
+    return CAMP_DETAILS_BY_LOCATIONID[resource_location_id][0]['description']
+    # return get_json('CAMP_DETAILS_SINGLE', {'resourceLocationId':resource_location_id})['localizedDetails'][0]['description']
 
 
 def get_site_description(site):
     """
     Get longform description of this Site
     """
-    return get_json('SITE_DETAILS', {'resourceId':site.resource_id})['localizedValues'][0]['description']
+    return get_json('SITE_DETAILS', {'resourceId':site.resource_id})['localizedValues'][0]
+    #['description']
 
 
 def list_camp_areas(camp, start_date, end_date, equipment_type):

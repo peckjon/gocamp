@@ -27,13 +27,23 @@ def prompt_collection(prompt, collection, default=None, print_selection=False):
     return selection
 
 
-def print_site_availabilitys(site, dates, site_availabilitys):
+def is_available(site, dates, site_availabilitys, equipment_id_subid):
+    for i, date in enumerate(dates):
+        if site_availabilitys[i].availability == 0:
+            site_allowed_equipment_text = [(e.category_id, e.subcategory_id) for e in site_availabilitys[i].allowed_equipment]
+            if equipment_id_subid not in site_allowed_equipment_text:
+                return False
+        else:
+            return False
+    return True
+
+
+def print_site_availabilitys(site, dates, site_availabilitys, equipment_id_subid):
     print(site)
     for i, date in enumerate(dates):
         site_availability_text = 'not available'
         if site_availabilitys[i].availability == 0:
-            site_allowed_equipment_text = [(e.category_id, e.subcategory_id) for e in
-                                           site_availabilitys[i].allowed_equipment]
+            site_allowed_equipment_text = [(e.category_id, e.subcategory_id) for e in site_availabilitys[i].allowed_equipment]
             site_availability_text = 'AVAILABLE' if equipment_id_subid in site_allowed_equipment_text else 'equipment not allowed'
         print('  %s %s' % (dates[i], site_availability_text))
 
@@ -72,7 +82,7 @@ if __name__ == '__main__':
     # list availability
     equipment_id_subid = (equipment.category_id, equipment.subcategory_id)
     for site, site_availabilitys in list_site_availability(camp_area, start_date, end_date, equipment.subcategory_id).items():
-        print_site_availabilitys(site, dates, site_availabilitys)
+        print_site_availabilitys(site, dates, site_availabilitys, equipment_id_subid)
 
     # web link to make reservation
     print(get_reservation_link(party_size, start_date, end_date, camp_area, camp.resource_location_id, equipment.category_id, equipment.subcategory_id))
