@@ -1,0 +1,4 @@
+{
+    "name": "GoCamp",
+    "image": "mcr.microsoft.com/vscode/devcontainers/python:3.6"
+}
