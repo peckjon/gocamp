@@ -79,7 +79,7 @@ def list_camps(resource_category_id):
     return camps
 
 def init_camp_details():
-    if(len(CAMP_DETAILS_BY_LOCATIONID) is 0):
+    if(len(CAMP_DETAILS_BY_LOCATIONID) == 0):
         all_camp_details = get_json('CAMP_DETAILS_ALL')
         for camp_details in all_camp_details:
             CAMP_DETAILS_BY_LOCATIONID[camp_details['resourceLocationId']] = camp_details['localizedValues']
